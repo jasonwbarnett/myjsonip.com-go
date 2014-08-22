@@ -24,7 +24,7 @@ func ipAddress(c web.C, w http.ResponseWriter, r *http.Request) {
 	format := c.URLParams["format"]
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 
-  body := make(map[string]string)
+	body := make(map[string]string)
 	body["ip"] = ip
 
 	// fmt.Fprintf(w, "Hello, %s!", c.URLParams["name"])
