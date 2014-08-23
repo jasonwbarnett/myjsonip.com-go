@@ -14,8 +14,10 @@ import (
 func init() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
+
 	r.HandleFunc("/", ipAddress).Methods("GET")
-	r.HandleFunc("/debug", dump).Methods("GET")
+
+	// r.HandleFunc("/debug", dump).Methods("GET")
 
 	r.HandleFunc("/ip", ipAddress).Methods("GET")
 	r.HandleFunc("/ip/{format}", ipAddress).Methods("GET")
