@@ -79,11 +79,10 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) s
 }
 
 func ipAddress(w http.ResponseWriter, r *http.Request) {
-	ipType, ip := parseRemoteAddr(r.RemoteAddr)
+	_, ip := parseRemoteAddr(r.RemoteAddr)
 
 	body := make(map[string]string)
 	body["ip"] = ip
-	body[ipType] = ip
 
 	fmt.Fprintf(w, formatOutput(w, r, body))
 }
@@ -99,12 +98,11 @@ func agent(w http.ResponseWriter, r *http.Request) {
 
 func all(w http.ResponseWriter, r *http.Request) {
 	agent := r.UserAgent()
-	ipType, ip := parseRemoteAddr(r.RemoteAddr)
+	_, ip := parseRemoteAddr(r.RemoteAddr)
 
 	body := make(map[string]string)
 	body["agent"] = agent
 	body["ip"] = ip
-	body[ipType] = ip
 
 	fmt.Fprintf(w, formatOutput(w, r, body))
 }
