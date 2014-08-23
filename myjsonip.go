@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v1"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -14,7 +15,7 @@ func init() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	r.HandleFunc("/", ipAddress).Methods("GET")
-	// r.HandleFunc("/debug", dump).Methods("GET")
+	r.HandleFunc("/debug", dump).Methods("GET")
 
 	r.HandleFunc("/ip", ipAddress).Methods("GET")
 	r.HandleFunc("/ip/{format}", ipAddress).Methods("GET")
@@ -31,12 +32,29 @@ func init() {
 }
 
 func dump(w http.ResponseWriter, r *http.Request) {
-	dumped, _ := httputil.DumpRequestOut(r, false)
+	w.Header().Set("Content-Type", "text/plain")
+	dumped, _ := httputil.DumpRequestOut(r, true)
 	dumped_out, _ := httputil.DumpRequestOut(r, false)
-	fmt.Fprintln(w, w.Header().Get("X-AppEngine-User-IP"))
-	fmt.Fprintln(w, w.Header().Get("X-AppEngine-Remote-Addr"))
-	fmt.Fprintln(w, dumped)
-	fmt.Fprintln(w, dumped_out)
+	fmt.Fprintf(w, "%s\n\n", dumped)
+	fmt.Fprintf(w, "%s\n\n", dumped_out)
+	ip := r.RemoteAddr
+	fmt.Fprintln(w, ip)
+}
+
+func parseRemoteAddr(s string) (ipType string, ip string) {
+	if ip := net.ParseIP(s); ip != nil {
+		if ip.To4() != nil {
+			return "ipv4", ip.String()
+		} else {
+			return "ipv6", ip.String()
+		}
+	}
+
+	if ip := net.ParseIP(strings.Split(s, ":")[0]); ip != nil {
+		return "ipv4", ip.String()
+	}
+
+	return "ipv?", "not found"
 }
 
 func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) string {
@@ -61,10 +79,11 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) s
 }
 
 func ipAddress(w http.ResponseWriter, r *http.Request) {
-	ip := strings.Split(r.RemoteAddr, ":")[0]
+	ipType, ip := parseRemoteAddr(r.RemoteAddr)
 
 	body := make(map[string]string)
 	body["ip"] = ip
+	body[ipType] = ip
 
 	fmt.Fprintf(w, formatOutput(w, r, body))
 }
@@ -80,11 +99,12 @@ func agent(w http.ResponseWriter, r *http.Request) {
 
 func all(w http.ResponseWriter, r *http.Request) {
 	agent := r.UserAgent()
-	ip := strings.Split(r.RemoteAddr, ":")[0]
+	ipType, ip := parseRemoteAddr(r.RemoteAddr)
 
 	body := make(map[string]string)
 	body["agent"] = agent
 	body["ip"] = ip
+	body[ipType] = ip
 
 	fmt.Fprintf(w, formatOutput(w, r, body))
 }
