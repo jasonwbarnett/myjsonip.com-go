@@ -37,9 +37,9 @@ func init() {
 func dump(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	dumped, _ := httputil.DumpRequestOut(r, true)
-	dumped_out, _ := httputil.DumpRequestOut(r, false)
+	dumpedOut, _ := httputil.DumpRequestOut(r, false)
 	fmt.Fprintf(w, "%s\n\n", dumped)
-	fmt.Fprintf(w, "%s\n\n", dumped_out)
+	fmt.Fprintf(w, "%s\n\n", dumpedOut)
 	ip := r.RemoteAddr
 	fmt.Fprintln(w, ip)
 }
@@ -48,9 +48,9 @@ func parseRemoteAddr(s string) (ipType string, ip string) {
 	if ip := net.ParseIP(s); ip != nil {
 		if ip.To4() != nil {
 			return "ipv4", ip.String()
-		} else {
-			return "ipv6", ip.String()
 		}
+		// Return IPv6 if not IPv4
+		return "ipv6", ip.String()
 	}
 
 	if ip := net.ParseIP(strings.Split(s, ":")[0]); ip != nil {
@@ -76,9 +76,9 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) s
 		w.Header().Set("Content-Type", "text/yaml")
 		bodyFormatted, _ := yaml.Marshal(m)
 		return fmt.Sprintf(string(bodyFormatted))
-	} else {
-		return fmt.Sprintf("Uknown format requested: %s", f)
 	}
+
+	return fmt.Sprintf("Uknown format requested: %s", f)
 }
 
 func ipAddress(w http.ResponseWriter, r *http.Request) {
