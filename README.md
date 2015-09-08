@@ -10,7 +10,7 @@ You are able to query the site for your WAN IP address or agent and it will retu
 
 | HTTP Method | URI            | What is returned?  |
 |:------------|:---------------|:-------------------|
-| GET         | /:format       | IP Address         |
+| GET         | /              | IP Address (JSON)  |
 | GET         | /ip/:format    | IP Address         |
 | GET         | /agent/:format | Agent              |
 | GET         | /all/:format   | IP Address + Agent |
