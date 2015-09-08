@@ -43,7 +43,7 @@ func init() {
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/404", http.StatusFound)
+	http.Redirect(w, r, "/404", http.StatusNotFound)
 }
 
 func dump(w http.ResponseWriter, r *http.Request) {
