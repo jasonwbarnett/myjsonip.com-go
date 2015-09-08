@@ -2,6 +2,7 @@ package myjsonip
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,6 +12,12 @@ import (
 	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v1"
 )
+
+type myJSONIPInfo struct {
+	XMLName   xml.Name `json:"-" xml:"myjsonip.com" yaml:"-"`
+	IPAddress string   `json:"ip,omitempty" xml:"ip,omitempty" yaml:"ip,omitempty"`
+	Agent     string   `json:"agent,omitempty" xml:"agent,omitempty" yaml:"agent,omitempty"`
+}
 
 func init() {
 	r := mux.NewRouter()
@@ -60,7 +67,7 @@ func parseRemoteAddr(s string) (ipType string, ip string) {
 	return "ipv?", "not found"
 }
 
-func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) string {
+func formatOutput(w http.ResponseWriter, r *http.Request, m myJSONIPInfo) string {
 	params := mux.Vars(r)
 	f := strings.ToLower(params["format"])
 
@@ -76,6 +83,10 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) s
 		w.Header().Set("Content-Type", "text/yaml")
 		bodyFormatted, _ := yaml.Marshal(m)
 		return fmt.Sprintf(string(bodyFormatted))
+	} else if f == "xml" {
+		w.Header().Set("Content-Type", "application/xml")
+		bodyFormatted, _ := xml.MarshalIndent(m, "", "  ")
+		return fmt.Sprintf(string(bodyFormatted))
 	}
 
 	return fmt.Sprintf("Uknown format requested: %s", f)
@@ -84,28 +95,28 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m map[string]string) s
 func ipAddress(w http.ResponseWriter, r *http.Request) {
 	_, ip := parseRemoteAddr(r.RemoteAddr)
 
-	body := make(map[string]string)
-	body["ip"] = ip
+	info := myJSONIPInfo{}
+	info.IPAddress = ip
 
-	fmt.Fprintf(w, formatOutput(w, r, body))
+	fmt.Fprintf(w, formatOutput(w, r, info))
 }
 
 func agent(w http.ResponseWriter, r *http.Request) {
 	agent := r.UserAgent()
 
-	body := make(map[string]string)
-	body["agent"] = agent
+	info := myJSONIPInfo{}
+	info.Agent = agent
 
-	fmt.Fprintf(w, formatOutput(w, r, body))
+	fmt.Fprintf(w, formatOutput(w, r, info))
 }
 
 func all(w http.ResponseWriter, r *http.Request) {
 	agent := r.UserAgent()
 	_, ip := parseRemoteAddr(r.RemoteAddr)
 
-	body := make(map[string]string)
-	body["agent"] = agent
-	body["ip"] = ip
+	info := myJSONIPInfo{}
+	info.Agent = agent
+	info.IPAddress = ip
 
-	fmt.Fprintf(w, formatOutput(w, r, body))
+	fmt.Fprintf(w, formatOutput(w, r, info))
 }
