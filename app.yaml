@@ -5,11 +5,11 @@ api_version: go1
 
 handlers:
   - url: /favicon\.ico
-    static_files: favicon.ico
-    upload: favicon\.ico
+    static_files: public_html/favicon.ico
+    upload: public_html/favicon\.ico
   - url: /robots\.txt
-    static_files: robots.txt
-    upload: robots\.txt
+    static_files: public_html/robots.txt
+    upload: public_html/robots\.txt
   - url: /404
     mime_type: text/html
     static_files: public_html/404.html
