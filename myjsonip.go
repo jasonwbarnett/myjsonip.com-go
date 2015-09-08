@@ -21,6 +21,7 @@ type myJSONIPInfo struct {
 
 func init() {
 	r := mux.NewRouter()
+	r.NotFoundHandler = http.HandlerFunc(notFound)
 	r.StrictSlash(true)
 
 	r.HandleFunc("/", ipAddress).Methods("GET")
@@ -36,9 +37,13 @@ func init() {
 	r.HandleFunc("/all", all).Methods("GET")
 	r.HandleFunc("/all/{format}", all).Methods("GET")
 
-	r.HandleFunc("/{format}", ipAddress).Methods("GET")
+	// r.HandleFunc("/{format}", ipAddress).Methods("GET")
 
 	http.Handle("/", r)
+}
+
+func notFound(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/404", http.StatusFound)
 }
 
 func dump(w http.ResponseWriter, r *http.Request) {

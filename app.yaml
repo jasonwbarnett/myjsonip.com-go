@@ -10,5 +10,10 @@ handlers:
   - url: /robots\.txt
     static_files: robots.txt
     upload: robots\.txt
+  - url: /404
+    mime_type: text/html
+    static_files: public_html/404.html
+    upload: public_html/404.html
+    expiration: "24h"
   - url: /.*
     script: _go_app
