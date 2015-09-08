@@ -79,22 +79,22 @@ func formatOutput(w http.ResponseWriter, r *http.Request, m myJSONIPInfo) string
 	if f == "" {
 		w.Header().Set("Content-Type", "application/json")
 		bodyFormatted, _ := json.Marshal(m)
-		return fmt.Sprintf(string(bodyFormatted))
+		return string(bodyFormatted)
 	} else if f == "json" {
 		w.Header().Set("Content-Type", "application/json")
 		bodyFormatted, _ := json.Marshal(m)
-		return fmt.Sprintf(string(bodyFormatted))
+		return string(bodyFormatted)
 	} else if f == "yaml" || f == "yml" {
 		w.Header().Set("Content-Type", "text/yaml")
 		bodyFormatted, _ := yaml.Marshal(m)
-		return fmt.Sprintf(string(bodyFormatted))
+		return string(bodyFormatted)
 	} else if f == "xml" {
 		w.Header().Set("Content-Type", "application/xml")
 		bodyFormatted, _ := xml.MarshalIndent(m, "", "  ")
-		return fmt.Sprintf(string(bodyFormatted))
+		return xml.Header + string(bodyFormatted)
 	}
 
-	return fmt.Sprintf("Uknown format requested: %s", f)
+	return fmt.Sprintf("Uknown format requested: %v", f)
 }
 
 func ipAddress(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func ipAddress(w http.ResponseWriter, r *http.Request) {
 	info := myJSONIPInfo{}
 	info.IPAddress = ip
 
-	fmt.Fprintf(w, formatOutput(w, r, info))
+	fmt.Fprint(w, formatOutput(w, r, info))
 }
 
 func agent(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func agent(w http.ResponseWriter, r *http.Request) {
 	info := myJSONIPInfo{}
 	info.Agent = agent
 
-	fmt.Fprintf(w, formatOutput(w, r, info))
+	fmt.Fprint(w, formatOutput(w, r, info))
 }
 
 func all(w http.ResponseWriter, r *http.Request) {
@@ -123,5 +123,5 @@ func all(w http.ResponseWriter, r *http.Request) {
 	info.Agent = agent
 	info.IPAddress = ip
 
-	fmt.Fprintf(w, formatOutput(w, r, info))
+	fmt.Fprint(w, formatOutput(w, r, info))
 }

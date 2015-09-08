@@ -34,9 +34,9 @@ http://myjsonip.com/ip/xml:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<hash>
-  <ip>172.22.52.123</ip>
-</hash>
+<myjsonip.com>
+  <ip>127.0.0.1</ip>
+</myjsonip.com>
 ```
 
 ## I have _x_ interfaces on my server with NATs, how can I leverage this site to get each interface WAN IP?
