@@ -3,12 +3,13 @@ package myjsonip
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"gopkg.in/yaml.v1"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"gopkg.in/yaml.v1"
 )
 
 func init() {
