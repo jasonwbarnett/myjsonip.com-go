@@ -9,6 +9,8 @@ import (
 	"net/http/httputil"
 	"strings"
 
+	"google.golang.org/appengine"
+
 	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v1"
 )
@@ -40,6 +42,10 @@ func init() {
 	// r.HandleFunc("/{format}", ipAddress).Methods("GET")
 
 	http.Handle("/", r)
+}
+
+func main() {
+	appengine.Main()
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
