@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	yaml "gopkg.in/yaml.v1"
+
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
@@ -20,10 +22,8 @@ type myJSONIPInfo struct {
 
 func init() {
 	e := echo.New()
-	e.SetDebug(true)
-	e.SetHTTPErrorHandler(HTTPErrorHandler)
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	e.SetHTTPErrorHandler(httpErrorHandler)
+	e.Pre(middleware.RemoveTrailingSlash())
 
 	e.GET("/", ipAddress)
 
@@ -46,17 +46,14 @@ func main() {
 }
 
 // HTTPErrorHandler invokes the default HTTP error handler.
-func HTTPErrorHandler(err error, c echo.Context) {
+func httpErrorHandler(err error, c echo.Context) {
 	code := http.StatusInternalServerError
 	msg := http.StatusText(code)
 	if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 		msg = he.Message
 	}
-	switch code {
-	case http.StatusNotFound:
-		c.Redirect(http.StatusMovedPermanently, "/404")
-	}
+
 	if c.Echo().Debug() {
 		msg = err.Error()
 	}
@@ -64,10 +61,36 @@ func HTTPErrorHandler(err error, c echo.Context) {
 		if c.Request().Method() == echo.HEAD { // Issue #608
 			c.NoContent(code)
 		} else {
-			c.String(code, msg)
+			switch code {
+			case http.StatusNotFound:
+				c.Redirect(http.StatusMovedPermanently, "/404")
+			default:
+				c.String(code, msg)
+			}
 		}
 	}
 	c.Echo().Logger().Error(err)
+}
+
+func formatOutput(c echo.Context, m myJSONIPInfo) (err error) {
+	f := strings.ToLower(c.Param("format"))
+
+	if f == "" {
+		//w.Header().Set("Content-Type", "application/json")
+		return c.JSON(http.StatusOK, m)
+	} else if f == "json" {
+		return c.JSON(http.StatusOK, m)
+	} else if f == "yaml" || f == "yml" {
+		c.Response().Header().Set(echo.HeaderContentType, "text/yaml; charset=utf-8")
+		c.Response().WriteHeader(http.StatusOK)
+		bodyFormatted, _ := yaml.Marshal(m)
+		_, err = c.Response().Write(bodyFormatted)
+		return
+	} else if f == "xml" {
+		return c.XML(http.StatusOK, m)
+	}
+
+	return c.String(http.StatusNotImplemented, "Format not recognized")
 }
 
 func parseRemoteAddr(s string) (ipType string, ip string) {
@@ -92,7 +115,7 @@ func ipAddress(c echo.Context) error {
 	info := myJSONIPInfo{}
 	info.IPAddress = ip
 
-	return c.JSON(http.StatusOK, info)
+	return formatOutput(c, info)
 }
 
 func agent(c echo.Context) error {
@@ -101,7 +124,7 @@ func agent(c echo.Context) error {
 	info := myJSONIPInfo{}
 	info.Agent = agent
 
-	return c.JSON(http.StatusOK, info)
+	return formatOutput(c, info)
 }
 
 func all(c echo.Context) error {
@@ -112,5 +135,5 @@ func all(c echo.Context) error {
 	info.Agent = agent
 	info.IPAddress = ip
 
-	return c.JSON(http.StatusOK, info)
+	return formatOutput(c, info)
 }
