@@ -45,7 +45,6 @@ func main() {
 	appengine.Main()
 }
 
-// HTTPErrorHandler invokes the default HTTP error handler.
 func httpErrorHandler(err error, c echo.Context) {
 	code := http.StatusInternalServerError
 	msg := http.StatusText(code)
