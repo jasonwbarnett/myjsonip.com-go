@@ -1,4 +1,4 @@
-package main
+package myjsonip
 
 import (
 	"encoding/xml"
