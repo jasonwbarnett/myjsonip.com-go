@@ -1,18 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 
-	"google.golang.org/appengine"
+	yaml "gopkg.in/yaml.v1"
 
-	"github.com/gorilla/mux"
-	"gopkg.in/yaml.v1"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/engine/standard"
+	"github.com/labstack/echo/middleware"
+	"google.golang.org/appengine"
 )
 
 type myJSONIPInfo struct {
@@ -22,44 +21,75 @@ type myJSONIPInfo struct {
 }
 
 func init() {
-	r := mux.NewRouter()
-	r.NotFoundHandler = http.HandlerFunc(notFound)
-	r.StrictSlash(true)
+	e := echo.New()
+	e.SetHTTPErrorHandler(httpErrorHandler)
+	e.Pre(middleware.RemoveTrailingSlash())
 
-	r.HandleFunc("/", ipAddress).Methods("GET")
+	e.GET("/", ipAddress)
 
-	// r.HandleFunc("/debug", dump).Methods("GET")
+	e.GET("/ip", ipAddress)
+	e.GET("/ip/:format", ipAddress)
 
-	r.HandleFunc("/ip", ipAddress).Methods("GET")
-	r.HandleFunc("/ip/{format}", ipAddress).Methods("GET")
+	e.GET("/agent", agent)
+	e.GET("/agent/:format", agent)
 
-	r.HandleFunc("/agent", agent).Methods("GET")
-	r.HandleFunc("/agent/{format}", agent).Methods("GET")
+	e.GET("/all", all)
+	e.GET("/all/:format", all)
 
-	r.HandleFunc("/all", all).Methods("GET")
-	r.HandleFunc("/all/{format}", all).Methods("GET")
-
-	// r.HandleFunc("/{format}", ipAddress).Methods("GET")
-
-	http.Handle("/", r)
+	s := standard.New("")
+	s.SetHandler(e)
+	http.Handle("/", s)
 }
 
 func main() {
 	appengine.Main()
 }
 
-func notFound(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/404", http.StatusNotFound)
+func httpErrorHandler(err error, c echo.Context) {
+	code := http.StatusInternalServerError
+	msg := http.StatusText(code)
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+		msg = he.Message
+	}
+
+	if c.Echo().Debug() {
+		msg = err.Error()
+	}
+	if !c.Response().Committed() {
+		if c.Request().Method() == echo.HEAD { // Issue #608
+			c.NoContent(code)
+		} else {
+			switch code {
+			case http.StatusNotFound:
+				c.Redirect(http.StatusMovedPermanently, "/404")
+			default:
+				c.String(code, msg)
+			}
+		}
+	}
+	c.Echo().Logger().Error(err)
 }
 
-func dump(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	dumped, _ := httputil.DumpRequestOut(r, true)
-	dumpedOut, _ := httputil.DumpRequestOut(r, false)
-	fmt.Fprintf(w, "%s\n\n", dumped)
-	fmt.Fprintf(w, "%s\n\n", dumpedOut)
-	ip := r.RemoteAddr
-	fmt.Fprintln(w, ip)
+func formatOutput(c echo.Context, m myJSONIPInfo) (err error) {
+	f := strings.ToLower(c.Param("format"))
+
+	if f == "" {
+		//w.Header().Set("Content-Type", "application/json")
+		return c.JSON(http.StatusOK, m)
+	} else if f == "json" {
+		return c.JSON(http.StatusOK, m)
+	} else if f == "yaml" || f == "yml" {
+		c.Response().Header().Set(echo.HeaderContentType, "text/yaml; charset=utf-8")
+		c.Response().WriteHeader(http.StatusOK)
+		bodyFormatted, _ := yaml.Marshal(m)
+		_, err = c.Response().Write(bodyFormatted)
+		return
+	} else if f == "xml" {
+		return c.XML(http.StatusOK, m)
+	}
+
+	return c.String(http.StatusNotImplemented, "Format not recognized")
 }
 
 func parseRemoteAddr(s string) (ipType string, ip string) {
@@ -78,56 +108,31 @@ func parseRemoteAddr(s string) (ipType string, ip string) {
 	return "ipv?", "not found"
 }
 
-func formatOutput(w http.ResponseWriter, r *http.Request, m myJSONIPInfo) string {
-	params := mux.Vars(r)
-	f := strings.ToLower(params["format"])
-
-	if f == "" {
-		w.Header().Set("Content-Type", "application/json")
-		bodyFormatted, _ := json.Marshal(m)
-		return string(bodyFormatted)
-	} else if f == "json" {
-		w.Header().Set("Content-Type", "application/json")
-		bodyFormatted, _ := json.Marshal(m)
-		return string(bodyFormatted)
-	} else if f == "yaml" || f == "yml" {
-		w.Header().Set("Content-Type", "text/yaml")
-		bodyFormatted, _ := yaml.Marshal(m)
-		return string(bodyFormatted)
-	} else if f == "xml" {
-		w.Header().Set("Content-Type", "application/xml")
-		bodyFormatted, _ := xml.MarshalIndent(m, "", "  ")
-		return xml.Header + string(bodyFormatted)
-	}
-
-	return fmt.Sprintf("Uknown format requested: %v", f)
-}
-
-func ipAddress(w http.ResponseWriter, r *http.Request) {
-	_, ip := parseRemoteAddr(r.RemoteAddr)
+func ipAddress(c echo.Context) error {
+	_, ip := parseRemoteAddr(c.Request().RemoteAddress())
 
 	info := myJSONIPInfo{}
 	info.IPAddress = ip
 
-	fmt.Fprint(w, formatOutput(w, r, info))
+	return formatOutput(c, info)
 }
 
-func agent(w http.ResponseWriter, r *http.Request) {
-	agent := r.UserAgent()
+func agent(c echo.Context) error {
+	agent := c.Request().UserAgent()
 
 	info := myJSONIPInfo{}
 	info.Agent = agent
 
-	fmt.Fprint(w, formatOutput(w, r, info))
+	return formatOutput(c, info)
 }
 
-func all(w http.ResponseWriter, r *http.Request) {
-	agent := r.UserAgent()
-	_, ip := parseRemoteAddr(r.RemoteAddr)
+func all(c echo.Context) error {
+	agent := c.Request().UserAgent()
+	_, ip := parseRemoteAddr(c.Request().RemoteAddress())
 
 	info := myJSONIPInfo{}
 	info.Agent = agent
 	info.IPAddress = ip
 
-	fmt.Fprint(w, formatOutput(w, r, info))
+	return formatOutput(c, info)
 }
