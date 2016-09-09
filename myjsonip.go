@@ -11,7 +11,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
-	"google.golang.org/appengine"
 )
 
 type myJSONIPInfo struct {
@@ -20,7 +19,7 @@ type myJSONIPInfo struct {
 	Agent     string   `json:"agent,omitempty" xml:"agent,omitempty" yaml:"agent,omitempty"`
 }
 
-func init() {
+func main() {
 	e := echo.New()
 	e.SetHTTPErrorHandler(httpErrorHandler)
 	e.Pre(middleware.RemoveTrailingSlash())
@@ -36,13 +35,7 @@ func init() {
 	e.GET("/all", all)
 	e.GET("/all/:format", all)
 
-	s := standard.New("")
-	s.SetHandler(e)
-	http.Handle("/", s)
-}
-
-func main() {
-	appengine.Main()
+	e.Run(standard.New(":8080"))
 }
 
 func httpErrorHandler(err error, c echo.Context) {
