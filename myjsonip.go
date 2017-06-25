@@ -9,20 +9,19 @@ import (
 	yaml "gopkg.in/yaml.v1"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
-	"google.golang.org/appengine"
 )
 
-type myJSONIPInfo struct {
+type MyJSONIPInfo struct {
 	XMLName   xml.Name `json:"-" xml:"myjsonip.com" yaml:"-"`
 	IPAddress string   `json:"ip,omitempty" xml:"ip,omitempty" yaml:"ip,omitempty"`
 	Agent     string   `json:"agent,omitempty" xml:"agent,omitempty" yaml:"agent,omitempty"`
 }
 
+var e = createMux()
+
 func init() {
-	e := echo.New()
-	e.SetHTTPErrorHandler(httpErrorHandler)
+	//e.SetHTTPErrorHandler(httpErrorHandler)
 	e.Pre(middleware.RemoveTrailingSlash())
 
 	e.GET("/", ipAddress)
@@ -35,14 +34,6 @@ func init() {
 
 	e.GET("/all", all)
 	e.GET("/all/:format", all)
-
-	s := standard.New("")
-	s.SetHandler(e)
-	http.Handle("/", s)
-}
-
-func main() {
-	appengine.Main()
 }
 
 func httpErrorHandler(err error, c echo.Context) {
@@ -50,14 +41,14 @@ func httpErrorHandler(err error, c echo.Context) {
 	msg := http.StatusText(code)
 	if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
-		msg = he.Message
+		msg = he.Message.(string)
 	}
 
-	if c.Echo().Debug() {
+	if c.Echo().Debug {
 		msg = err.Error()
 	}
-	if !c.Response().Committed() {
-		if c.Request().Method() == echo.HEAD { // Issue #608
+	if !c.Response().Committed {
+		if c.Request().Method == echo.HEAD { // Issue #608
 			c.NoContent(code)
 		} else {
 			switch code {
@@ -68,10 +59,10 @@ func httpErrorHandler(err error, c echo.Context) {
 			}
 		}
 	}
-	c.Echo().Logger().Error(err)
+	c.Echo().Logger.Error(err)
 }
 
-func formatOutput(c echo.Context, m myJSONIPInfo) (err error) {
+func formatOutput(c echo.Context, m MyJSONIPInfo) (err error) {
 	f := strings.ToLower(c.Param("format"))
 
 	if f == "" {
@@ -109,9 +100,9 @@ func parseRemoteAddr(s string) (ipType string, ip string) {
 }
 
 func ipAddress(c echo.Context) error {
-	_, ip := parseRemoteAddr(c.Request().RemoteAddress())
+	_, ip := parseRemoteAddr(c.Request().RemoteAddr)
 
-	info := myJSONIPInfo{}
+	info := MyJSONIPInfo{}
 	info.IPAddress = ip
 
 	return formatOutput(c, info)
@@ -120,7 +111,7 @@ func ipAddress(c echo.Context) error {
 func agent(c echo.Context) error {
 	agent := c.Request().UserAgent()
 
-	info := myJSONIPInfo{}
+	info := MyJSONIPInfo{}
 	info.Agent = agent
 
 	return formatOutput(c, info)
@@ -128,9 +119,9 @@ func agent(c echo.Context) error {
 
 func all(c echo.Context) error {
 	agent := c.Request().UserAgent()
-	_, ip := parseRemoteAddr(c.Request().RemoteAddress())
+	_, ip := parseRemoteAddr(c.Request().RemoteAddr)
 
-	info := myJSONIPInfo{}
+	info := MyJSONIPInfo{}
 	info.Agent = agent
 	info.IPAddress = ip
 
