@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -10,7 +11,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	myjsonip "github.com/jasonwbarnett/myjsonip.com-go"
+	"github.com/jasonwbarnett/myjsonip.com-go/myjsoniptypes"
 )
 
 func main() {
@@ -74,10 +75,10 @@ func contactMyJSONIP(a net.Addr) (IP string) {
 	}
 	fmt.Printf("Response: %+v", string(body))
 
-	myjsonip.
-		json.Unmarshal([]byte(str), &res)
+	myip := myjsoniptypes.MyJSONIPInfo{}
+	json.Unmarshal(body, &myip)
 
-	return ""
+	return myip.IPAddress
 }
 
 func isIPv4(s string) bool {
