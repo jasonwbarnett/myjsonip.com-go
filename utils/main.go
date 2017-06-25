@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	myjsonip "github.com/jasonwbarnett/myjsonip.com-go"
 )
 
 func main() {
@@ -16,27 +18,31 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+	fmt.Println("Interfaces:\n-----------")
 	fmt.Println(spew.Sdump(interfaces))
 
 	firstInterface := interfaces[4]
+	fmt.Println("interfaces[4]:\n--------------")
 	fmt.Println(spew.Sdump(firstInterface))
 
 	firstInterfaceAddrs, err := firstInterface.Addrs()
 	if err != nil {
 		os.Exit(1)
 	}
+	fmt.Println("firstInterfaceAddrs:\n--------------------")
 	fmt.Println(spew.Sdump(firstInterfaceAddrs))
 
 	for _, addr := range firstInterfaceAddrs {
-		if isIPv4(addr.String()) {
-			fmt.Printf("Trying to figure out %s\n", addr)
-			contactMyJsonIP(addr)
+		ip := addr.(*net.IPNet)
+		tcpAddr := &net.TCPAddr{
+			IP: ip.IP,
 		}
+		contactMyJSONIP(tcpAddr)
 	}
 
 }
 
-func contactMyJsonIP(a net.Addr) (IP string) {
+func contactMyJSONIP(a net.Addr) (IP string) {
 	localTransport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -51,12 +57,25 @@ func contactMyJsonIP(a net.Addr) (IP string) {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
+	fmt.Println(a)
+
 	client := &http.Client{Transport: localTransport}
-	resp, err := client.Get("https://myjsonip.com")
-	fmt.Printf("%+v", resp)
+	resp, err := client.Get("http://myjsonip.com")
 	if err != nil {
-		os.Exit(2)
+		fmt.Println("Error when trying to GET myjsonip.com")
+		fmt.Println(err.Error())
+		return ""
 	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err.Error())
+		return ""
+	}
+	fmt.Printf("Response: %+v", string(body))
+
+	myjsonip.
+		json.Unmarshal([]byte(str), &res)
 
 	return ""
 }
@@ -66,6 +85,7 @@ func isIPv4(s string) bool {
 
 	// Return if ip address cannot be parsed
 	if ip == nil {
+		fmt.Println("ip == nil")
 		return false
 	}
 
