@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	yaml "gopkg.in/yaml.v1"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
