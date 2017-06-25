@@ -10,42 +10,49 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jasonwbarnett/myjsonip.com-go/myjsoniptypes"
+	logging "github.com/op/go-logging"
+)
+
+var log = logging.MustGetLogger("example")
+
+// Example format string. Everything except the message has a custom color
+// which is dependent on the log level. Many fields have a custom output
+// formatting too, eg. the time returns the hour down to the milli second.
+var format = logging.MustStringFormatter(
+	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
 )
 
 func main() {
+	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	backendFormatter := logging.NewBackendFormatter(backend, format)
+	logging.SetBackend(backendFormatter)
+
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		os.Exit(1)
 	}
-	fmt.Println("Interfaces:\n-----------")
-	fmt.Println(spew.Sdump(interfaces))
 
-	firstInterface := interfaces[4]
-	fmt.Println("interfaces[4]:\n--------------")
-	fmt.Println(spew.Sdump(firstInterface))
-
-	firstInterfaceAddrs, err := firstInterface.Addrs()
-	if err != nil {
-		os.Exit(1)
-	}
-	fmt.Println("firstInterfaceAddrs:\n--------------------")
-	fmt.Println(spew.Sdump(firstInterfaceAddrs))
-
-	for _, addr := range firstInterfaceAddrs {
-		ip := addr.(*net.IPNet)
-		tcpAddr := &net.TCPAddr{
-			IP: ip.IP,
-		}
-		pubIP, err := contactMyJSONIP(tcpAddr)
+	for _, inter := range interfaces {
+		interfaceAddrs, err := inter.Addrs()
 		if err != nil {
-			fmt.Println(err.Error())
-		} else {
-			fmt.Printf("%s :: %s\n", ip.IP, pubIP)
+			os.Exit(1)
+		}
+
+		for _, addr := range interfaceAddrs {
+			ip := addr.(*net.IPNet)
+			tcpAddr := &net.TCPAddr{
+				IP: ip.IP,
+			}
+			log.Infof("[interface=%s][local_ip=%s] Querying Public IP\n", inter.Name, ip.IP)
+			pubIP, err := contactMyJSONIP(tcpAddr)
+			if err != nil {
+				log.Error(err.Error())
+			} else {
+				fmt.Printf("[interface=%s][local_ip=%s][public_ip=%s]\n", inter.Name, ip.IP, pubIP)
+			}
 		}
 	}
-
 }
 
 func contactMyJSONIP(a net.Addr) (IP string, err error) {
