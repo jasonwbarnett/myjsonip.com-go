@@ -1,22 +1,16 @@
 package main
 
 import (
-	"encoding/xml"
 	"net"
 	"net/http"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/jasonwbarnett/myjsonip.com-go/myjsoniptypes"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
-
-type MyJSONIPInfo struct {
-	XMLName   xml.Name `json:"-" xml:"myjsonip.com" yaml:"-"`
-	IPAddress string   `json:"ip,omitempty" xml:"ip,omitempty" yaml:"ip,omitempty"`
-	Agent     string   `json:"agent,omitempty" xml:"agent,omitempty" yaml:"agent,omitempty"`
-}
 
 var e = createMux()
 
@@ -62,7 +56,7 @@ func httpErrorHandler(err error, c echo.Context) {
 	c.Echo().Logger.Error(err)
 }
 
-func formatOutput(c echo.Context, m MyJSONIPInfo) (err error) {
+func formatOutput(c echo.Context, m myjsoniptypes.MyJSONIPInfo) (err error) {
 	f := strings.ToLower(c.Param("format"))
 
 	if f == "" {
@@ -102,7 +96,7 @@ func parseRemoteAddr(s string) (ipType string, ip string) {
 func ipAddress(c echo.Context) error {
 	_, ip := parseRemoteAddr(c.Request().RemoteAddr)
 
-	info := MyJSONIPInfo{}
+	info := myjsoniptypes.MyJSONIPInfo{}
 	info.IPAddress = ip
 
 	return formatOutput(c, info)
@@ -111,7 +105,7 @@ func ipAddress(c echo.Context) error {
 func agent(c echo.Context) error {
 	agent := c.Request().UserAgent()
 
-	info := MyJSONIPInfo{}
+	info := myjsoniptypes.MyJSONIPInfo{}
 	info.Agent = agent
 
 	return formatOutput(c, info)
@@ -121,7 +115,7 @@ func all(c echo.Context) error {
 	agent := c.Request().UserAgent()
 	_, ip := parseRemoteAddr(c.Request().RemoteAddr)
 
-	info := MyJSONIPInfo{}
+	info := myjsoniptypes.MyJSONIPInfo{}
 	info.Agent = agent
 	info.IPAddress = ip
 
