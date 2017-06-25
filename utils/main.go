@@ -38,12 +38,17 @@ func main() {
 		tcpAddr := &net.TCPAddr{
 			IP: ip.IP,
 		}
-		contactMyJSONIP(tcpAddr)
+		pubIP, err := contactMyJSONIP(tcpAddr)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Printf("%s :: %s\n", ip.IP, pubIP)
+		}
 	}
 
 }
 
-func contactMyJSONIP(a net.Addr) (IP string) {
+func contactMyJSONIP(a net.Addr) (IP string, err error) {
 	localTransport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -58,27 +63,21 @@ func contactMyJSONIP(a net.Addr) (IP string) {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	fmt.Println(a)
-
 	client := &http.Client{Transport: localTransport}
 	resp, err := client.Get("http://myjsonip.com")
 	if err != nil {
-		fmt.Println("Error when trying to GET myjsonip.com")
-		fmt.Println(err.Error())
-		return ""
+		return "", err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err.Error())
-		return ""
+		return "", err
 	}
-	fmt.Printf("Response: %+v", string(body))
 
 	myip := myjsoniptypes.MyJSONIPInfo{}
 	json.Unmarshal(body, &myip)
 
-	return myip.IPAddress
+	return myip.IPAddress, err
 }
 
 func isIPv4(s string) bool {
